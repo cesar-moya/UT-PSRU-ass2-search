@@ -34,10 +34,11 @@ class BoardState:
 
         Input: a tuple (col, row)
         Output: an integer in the interval [0, 55] inclusive
-
-        TODO: You need to implement this.
         """
-        raise NotImplementedError("TODO: Implement this function")
+        c, r = cr
+        res = (6 * r) + r + c
+        # print(f"encode: ({c},{r}) = {res}")
+        return res
 
     def decode_single_pos(self, n: int):
         """
@@ -45,10 +46,11 @@ class BoardState:
 
         Input: an integer in the interval [0, 55] inclusive
         Output: a tuple (col, row)
-
-        TODO: You need to implement this.
         """
-        raise NotImplementedError("TODO: Implement this function")
+        c = n % 7 # the remainder is the column
+        r = n // 7 # the quotient is the row
+        # print(f"decode: {n} = ({c}, {r})")
+        return (c, r)
 
     def is_termination_state(self):
         """
