@@ -136,3 +136,9 @@ Note the `NotImplementedError`: It indicates that this piece of the assignment h
 We highly recommend that you come up with more comprehensive test cases to test your implementations. Your test cases will be important for finding bugs in your implementations and identifying corner cases that you may have initially missed; see the comments in test_search.py. You can also take a look at the pytest documentation.
 
 <https://docs.pytest.org/en/7.2.x/>
+
+### Custom Notes
+To run a single test:
+```
+>python -m pytest -s -k test_encoded_decode
+```

@@ -74,10 +74,32 @@ class BoardState:
         it represents a valid board configuration.
 
         Output: return True (if valid) or False (if not valid)
-        
-        TODO: You need to implement this.
         """
-        raise NotImplementedError("TODO: Implement this function")
+        # print("State: ", self.state)
+        # length and basic checks for valid numbers
+        if len(self.state) != 12:
+            return False
+        for s in self.state:
+            if s < 0 or s > 55:
+                return False
+        # check ball is on a correct piece
+        w_blocks = self.state[:5]
+        b_blocks = self.state[6:11]
+        w_ball = self.state[5]
+        b_ball = self.state[11]
+        # print(f"white: {w_blocks}, w_ball: {w_ball} | black: {b_blocks}, b_ball: {b_ball}")
+        if w_ball not in w_blocks or b_ball not in b_blocks:
+            # print("some ball is floating in space")
+            return False
+
+        # check pieces are not overlapping
+        # all_blocks = w_blocks + b_blocks
+        all_blocks = [w for w in w_blocks] + [b for b in b_blocks]
+        #print(f"all_blocks: {all_blocks}")
+        if len(all_blocks) != len(set(all_blocks)):
+            # print("overlapping pieces found")
+            return False
+        return True
 
 class Rules:
 
