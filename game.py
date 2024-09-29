@@ -56,23 +56,35 @@ class BoardState:
         """
         Checks if the current state is a termination state. Termination occurs when
         one of the player's move their ball to the opposite side of the board.
-
         You can assume that `self.state` contains the current state of the board, so
         check whether self.state represents a termainal board state, and return True or False.
-        
-        TODO: You need to implement this.
         """
-        raise NotImplementedError("TODO: Implement this function")
+        if not self.is_valid():
+            return False
+
+        # TODO: can we assume that white always start in the 0 row?
+        w_blocks, w_ball = self.get_white()
+        b_blocks, b_ball = self.get_black()
+        
+        # white wins?
+        c, r = self.decode_single_pos(w_ball)
+        if r == self.N_ROWS-1:
+            return True
+
+        # black wins?
+        c, r = self.decode_single_pos(b_ball)
+        if r == 0:
+            return True
+
+        return False
 
     def is_valid(self):
         """
         Checks if a board configuration is valid. This function checks whether the current
         value self.state represents a valid board configuration or not. This encodes and checks
         the various constrainsts that must always be satisfied in any valid board state during a game.
-
         If we give you a self.state array of 12 arbitrary integers, this function should indicate whether
         it represents a valid board configuration.
-
         Output: return True (if valid) or False (if not valid)
         """
         # print("State: ", self.state)
@@ -83,10 +95,8 @@ class BoardState:
             if s < 0 or s > 55:
                 return False
         # check ball is on a correct piece
-        w_blocks = self.state[:5]
-        b_blocks = self.state[6:11]
-        w_ball = self.state[5]
-        b_ball = self.state[11]
+        w_blocks, w_ball = self.get_white()
+        b_blocks, b_ball = self.get_black()
         # print(f"white: {w_blocks}, w_ball: {w_ball} | black: {b_blocks}, b_ball: {b_ball}")
         if w_ball not in w_blocks or b_ball not in b_blocks:
             # print("some ball is floating in space")
@@ -100,6 +110,17 @@ class BoardState:
             # print("overlapping pieces found")
             return False
         return True
+
+    def get_white(self):
+        w_blocks = self.state[:5]
+        w_ball = self.state[5]
+        return (w_blocks, w_ball)
+        
+    def get_black(self):
+        b_blocks = self.state[6:11]
+        b_ball = self.state[11]
+        return (b_blocks, b_ball)
+        
 
 class Rules:
 
