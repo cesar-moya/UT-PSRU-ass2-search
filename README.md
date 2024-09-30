@@ -138,7 +138,11 @@ We highly recommend that you come up with more comprehensive test cases to test 
 <https://docs.pytest.org/en/7.2.x/>
 
 ### Custom Notes
-To run a single test:
+To run a single test (most efficient)
+```
+>pytest -v test_search.py::TestSearch::test_game_state_problem
+```
+To run a single test (searches across all tests, slower)
 ```
 >python -m pytest -s -k test_encoded_decode
 ```

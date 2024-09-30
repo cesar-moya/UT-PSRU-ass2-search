@@ -346,3 +346,18 @@ class TestSearch:
         predicted_reachable_encoded = Rules.single_ball_actions(board, player)
         encoded_reachable = set(board.encode_single_pos(cr) for cr in reachable)
         assert predicted_reachable_encoded == encoded_reachable
+
+    @pytest.mark.parametrize("state,piece_idx,expected_valid_moves", [
+        ([1,2,3,4,5,3,50,51,52,53,54,52], 0, [14, 10, 16]), # piece_idx is array index HERE <----
+        ([1,2,3,4,5,3,50,51,52,53,54,52], 4, [18, 10, 20]), # white piece move
+        ([1,2,3,4,5,3,50,51,52,53,54,52], 10, [45, 39, 41]), # black piece move
+        ([1,2,3,4,5,3,50,51,52,53,54,52], 2, []), # try to move the ball
+        ([1,2,3,4,5,3,15,7,52,17,11,52], 1, []), # overlap test, "2" can't move to black occupied spaces
+    ])
+    def test_single_piece_actions(self, state, piece_idx, expected_valid_moves):
+        board = BoardState()
+        board.state = state
+        board.decode_state = board.make_state()
+        actions = Rules.single_piece_actions(board, piece_idx)
+        assert sorted(actions) == sorted(expected_valid_moves)
+        

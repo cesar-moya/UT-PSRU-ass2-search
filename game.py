@@ -47,8 +47,8 @@ class BoardState:
         Input: an integer in the interval [0, 55] inclusive
         Output: a tuple (col, row)
         """
-        c = n % 7 # the remainder is the column
-        r = n // 7 # the quotient is the row
+        c = int(n % 7) # the remainder is the column
+        r = int(n // 7) # the quotient is the row
         # print(f"decode: {n} = ({c}, {r})")
         return (c, r)
 
@@ -137,10 +137,42 @@ class Rules:
 
         Output: an iterable (set or list or tuple) of integers which indicate the encoded positions
             that piece_idx can move to during this turn.
-        
-        TODO: You need to implement this.
         """
-        raise NotImplementedError("TODO: Implement this function")
+        piece_enc = board_state.state[piece_idx] # the encoded location of the piece, e.g. "53"
+        (c, r) = board_state.decode_single_pos(piece_enc)
+        # print(f"\nstate: {board_state.state} | piece_idx: {piece_idx} | piece_enc: {piece_enc} | c, r: {(c, r)}")
+        # these are encoded
+        w_blocks, w_ball = board_state.get_white()
+        b_blocks, b_ball = board_state.get_black()
+        if piece_enc == w_ball or piece_enc == b_ball:
+            return []
+        # jump top-left
+        top_left_far =  (c - 1, r + 2)
+        top_left_near = (c - 2, r + 1)
+        # jump top-right
+        top_right_far =  (c + 1, r + 2)
+        top_right_near = (c + 2, r + 1)
+        # jump botton-left
+        bottom_left_far =  (c - 1, r - 2)
+        bottom_left_near = (c - 2, r - 1)
+        # jump bottom-right
+        bottom_right_far =  (c + 1, r - 2)
+        bottom_right_near = (c + 2, r - 1)
+        options = [top_left_far, top_left_near, top_right_far, top_right_near, 
+                   bottom_left_far, bottom_left_near, bottom_right_far, bottom_right_near]
+        valid_moves = []
+        for o in options:
+            col, row = o
+            # check out of bounds
+            if col < 0 or col > board_state.N_COLS-1 or row < 0 or row > board_state.N_ROWS-1:
+                continue 
+            # check if target cell is occupied
+            o_enc = board_state.encode_single_pos(o)
+            if o_enc in w_blocks or o_enc in b_blocks:
+                continue # cell occupied already
+            valid_moves.append(o_enc)
+        # print(f"valid_moves: {valid_moves}")
+        return valid_moves
 
     @staticmethod
     def single_ball_actions(board_state, player_idx):
