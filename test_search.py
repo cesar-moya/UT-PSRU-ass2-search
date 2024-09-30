@@ -159,7 +159,7 @@ class TestSearch:
                 (1,1),(0,1),(2,1),(1,2),(1,0),(1,1),
                 (0,0),(2,0),(0,2),(2,2),(3,3),(3,3)
             ],
-            set([(0,1),(2,1),(1,2),(1,0)]),
+            set([(0,1),(2,1),(1,2),(1,0)]), # 1, 7, 15, 9
             0
         ),
         (
@@ -167,7 +167,7 @@ class TestSearch:
                 (1,1),(0,1),(2,1),(1,2),(1,0),(1,1),
                 (0,0),(2,0),(0,2),(2,2),(3,3),(3,3)
             ],
-            set([(2,2)]),
+            set([(2,2)]), # 16
             1
         ),
         (
@@ -360,4 +360,14 @@ class TestSearch:
         board.decode_state = board.make_state()
         actions = Rules.single_piece_actions(board, piece_idx)
         assert sorted(actions) == sorted(expected_valid_moves)
+    
+    # @pytest.mark.parametrize("state,player_idx,expected_valid_moves", [
+    #     ([1,2,3,4,5,3,50,51,52,53,54,52], 0, [1,2,4,5]), # white 
+    # ])
+    # def test_single_ball_actions(self, state, player_idx, expected_valid_moves):
+    #     board = BoardState()
+    #     board.state = state
+    #     board.decode_state = board.make_state()
+    #     actions = Rules.single_ball_actions(board, player_idx)
+    #     assert sorted(actions) == sorted(expected_valid_moves)
         

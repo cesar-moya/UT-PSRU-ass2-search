@@ -1,4 +1,5 @@
 import numpy as np
+import queue
 
 class BoardState:
     """
@@ -120,6 +121,55 @@ class BoardState:
         b_blocks = self.state[6:11]
         b_ball = self.state[11]
         return (b_blocks, b_ball)
+    
+    def same_diagonal(self, x1, y1, x2, y2):
+        #TODO: test this, make sure it works fine
+        if abs(x2 - x1) == abs(y2 - y1):
+            return True
+        else:
+            return False
+        
+    # sub-function that finds all friendly blocks that are reachable (direct line of sight)
+    def get_reachable_neighbors(self, current_block, friendly_blocks, opposite_blocks):
+        # loop through friendly_blocks, check if it's in view and without any opposite in the way
+        reachable = []
+        for f in friendly_blocks:
+            # print(f"current_block: {current_block} | f: {f} | different?: {f != current_block}")
+            if f != current_block and self.is_reachable(current_block, f, opposite_blocks):
+                reachable.append(f)
+        return reachable
+
+    # Checks whether the target block is reachable (in clear sight) from current (horizontal, diagonal, vertical)
+    def is_reachable(self, current_block, target_block, opposite_blocks):
+        if current_block == target_block:
+            # print(f"current is same as target!: {current_block} - {target_block}")
+            return False
+        curr_c, curr_r = self.decode_single_pos(current_block)
+        targ_c, targ_r = self.decode_single_pos(target_block)
+        # opposite_cols/rows represent the row/col's where black pieces are "interfering"
+        opposite_cols = [self.decode_single_pos(s)[0] for s in opposite_blocks]
+        opposite_rows = [self.decode_single_pos(s)[1] for s in opposite_blocks]
+        # if target piece is on same col, check if there are blocking blocks
+        if curr_c == targ_c:
+            # for all opposite_cols, if any of them is between curr_c and targ_c, then invalid
+            for opp_c in opposite_cols:
+                if (opp_c > curr_c and opp_c < targ_c) or (opp_c < curr_c and opp_c > targ_c):
+                    return False
+        # if target piece is on same row, check if there are blocking blocks
+        if curr_r == targ_r:
+            for opp_r in opposite_rows:
+                if (opp_r > curr_r and opp_r < targ_r) or (opp_r < curr_r and opp_r > targ_r):
+                    return False
+        # if target piece is on same diagonal, check if there are any blocking blocks
+        if self.same_diagonal(curr_c, curr_r, targ_c, targ_r):
+            opposite_blocks_dec = [self.decode_single_pos(s) for s in opposite_blocks]
+            for o in opposite_blocks_dec:
+                opp_c, opp_r = o
+                is_blocking = ( min(curr_c, targ_c) < opp_c < max(curr_c, targ_c) and 
+                                min(curr_r, targ_r) < opp_r < max(curr_r, targ_r) )
+                if is_blocking:
+                    return False
+        return True
         
 
 class Rules:
@@ -178,18 +228,41 @@ class Rules:
     def single_ball_actions(board_state, player_idx):
         """
         Returns the set of possible actions for moving the specified ball, assumed to be the
-        valid ball for plater_idx  in the board_state
-
+        valid ball for player_idx in the board_state
         Inputs:
             - board_state, assumed to be a BoardState
             - player_idx, either 0 or 1, to indicate which player's ball we are enumerating over
-        
         Output: an iterable (set or list or tuple) of integers which indicate the encoded positions
             that player_idx's ball can move to during this turn.
-        
-        TODO: You need to implement this.
         """
-        raise NotImplementedError("TODO: Implement this function")
+        w_blocks, w_ball = board_state.get_white()
+        b_blocks, b_ball = board_state.get_black()
+        print(f"\nstate: {board_state.state} | player: {player_idx}")
+        
+        # the ball can only move to one of its blocks in clear sight at any distance like a queen
+        if player_idx == 0: # white
+            ball_valid_actions = Rules.get_ball_actions_BFS(board_state, w_ball, w_blocks, b_blocks)    
+        elif player_idx == 1: # black
+            ball_valid_actions = Rules.get_ball_actions_BFS(board_state, b_ball, b_blocks, w_blocks)
+        else:
+            raise Exception("Invalid Player")
+        return ball_valid_actions
+    
+    # blocks and ball are encoded (e.g. 53, 2, 27)
+    @staticmethod
+    def get_ball_actions_BFS(board_state: BoardState, ball, friendly_blocks, opposite_blocks) -> set:
+        visited = set()
+        q = queue.SimpleQueue()
+        q.put(ball)
+        while not q.empty():
+            block = q.get()
+            # don't return the ball's block as an option
+            if block != ball:
+                visited.add(block)
+            for n in board_state.get_reachable_neighbors(block, friendly_blocks, opposite_blocks):
+                if n not in visited:
+                    q.put(n)
+        return visited
 
 class GameSimulator:
     """

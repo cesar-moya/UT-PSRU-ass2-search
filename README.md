@@ -140,8 +140,14 @@ We highly recommend that you come up with more comprehensive test cases to test 
 ### Custom Notes
 To run a single test (most efficient)
 ```
->pytest -v test_search.py::TestSearch::test_game_state_problem
+>pytest -v -s test_search.py::TestSearch::test_game_state_problem
 ```
+
+To run a single parametrized test entry from param test
+```
+pytest -v -s test_search.py::TestSearch::test_ball_reachability[state1-reachable1-1]
+```
+
 To run a single test (searches across all tests, slower)
 ```
 >python -m pytest -s -k test_encoded_decode
