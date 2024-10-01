@@ -321,41 +321,45 @@ class GameSimulator:
               pieces. Pieces with relative index 0,1,2,3,4 are block pieces that like knights in chess, and
               relative index 5 is the player's ball piece.
         """
-        # Rules.single_piece_actions(board_state, piece_idx)
-        # Rules.single_ball_actions (board_state, player_idx)
+
         if player_idx == 0:
-            blocks, ball = self.game_state.get_white()
+            # blocks, ball = self.game_state.get_white()
+            state_list_range = range(0, 5) # to maintain original index positions
+            ball_relative_index = 5
         else:
-            blocks, ball = self.game_state.get_black()
+            # blocks, ball = self.game_state.get_black()
+            state_list_range = range(6, 11)
+            ball_relative_index = 5
 
         actions = set()
-        for piece_idx, pos_enc in enumerate(blocks):
-            piece_actions = Rules.single_piece_actions(self.game_state, piece_idx)
-            actions.add( (piece_idx, action) for action in piece_actions )
+        for i in state_list_range:
+            piece_actions = Rules.single_piece_actions(self.game_state, i)
+            player_rel_index = i if player_idx == 0 else i - 6 # so that we always do 0...5 for both black and white
+            actions.update((player_rel_index, action) for action in piece_actions)
 
         ball_actions = Rules.single_ball_actions(self.game_state, player_idx)
-        actions.add( (piece_idx, action) for action in ball_actions )
+        actions.update((ball_relative_index, action) for action in ball_actions)
         return actions
 
     def validate_action(self, action: tuple, player_idx: int):
         """
         Checks whether or not the specified action can be taken from this state by the specified player
-
         Inputs:
             - action is a tuple (relative_idx, encoded position)
             - player_idx is an integer 0 or 1 representing the player that is moving this turn
             - self.game_state represents the current BoardState
-
         Output:
             - if the action is valid, return True
             - if the action is not valid, raise ValueError
-        
-        TODO: You need to implement this.
         """
-        if False:
-            raise ValueError("For each case that an action is not valid, specify the reason that the action is not valid in this ValueError.")
-        if True:
-            return True
+        # print(f"\n\nstate: {self.game_state.state} | player: {player_idx}")
+        valid_actions = sorted(self.generate_valid_actions(player_idx))
+        is_valid = action in valid_actions
+        # print(f"valid_actions: {valid_actions}")
+        # print(f"action: {action} | is_valid: {is_valid}")
+        if not is_valid:
+            raise ValueError(f"Action {action} for player {player_idx} is invalid, valid actions: {valid_actions}")
+        return is_valid
     
     def update(self, action: tuple, player_idx: int):
         """

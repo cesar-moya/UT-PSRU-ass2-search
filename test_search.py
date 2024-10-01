@@ -87,6 +87,23 @@ class TestSearch:
         ((5,2), 0, True, ""),
         ((5,4), 0, True, ""),
         ((5,5), 0, True, ""),
+        # my test cases
+        ((3,9), 0, True, ""),
+        ((3,17), 0, True, ""),
+        ((3,19), 0, True, ""),
+        ((3,13), 0, True, ""),
+        ((3,40), 0, False, "invalid"),
+        ((2,3), 0, False, "invalid"),
+        #black
+        ((3,38), 1, True, ""),
+        ((3,40), 1, True, ""),
+        ((3,44), 1, True, ""),
+        ((3,48), 1, True, ""),
+        ((3,39), 1, False, "invalid"),
+        ((3,17), 1, False, "invalid"),
+        ((5,50), 1, True, ""),
+        ((5,53), 1, True, ""),
+        ((5,52), 1, False, "invalid"),
     ])
     def test_validate_action(self, action, player, is_valid, val_msg):
         sim = GameSimulator(None)
@@ -354,6 +371,7 @@ class TestSearch:
         ([1,2,3,4,5,3,50,51,52,53,54,52], 10, [45, 39, 41]), # black piece move
         ([1,2,3,4,5,3,50,51,52,53,54,52], 2, []), # try to move the ball
         ([1,2,3,4,5,3,15,7,52,17,11,52], 1, []), # overlap test, "2" can't move to black occupied spaces
+        # ([1,2,3,4,5,3,50,51,52,53,54,52], 10, []), # black piece move
     ])
     def test_single_piece_actions(self, state, piece_idx, expected_valid_moves):
         board = BoardState()
