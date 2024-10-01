@@ -320,10 +320,22 @@ class GameSimulator:
               piece in the boardstate can be obtained, so relative_idx is the index relative to current player's
               pieces. Pieces with relative index 0,1,2,3,4 are block pieces that like knights in chess, and
               relative index 5 is the player's ball piece.
-            
-        TODO: You need to implement this.
         """
-        raise NotImplementedError("TODO: Implement this function")
+        # Rules.single_piece_actions(board_state, piece_idx)
+        # Rules.single_ball_actions (board_state, player_idx)
+        if player_idx == 0:
+            blocks, ball = self.game_state.get_white()
+        else:
+            blocks, ball = self.game_state.get_black()
+
+        actions = set()
+        for piece_idx, pos_enc in enumerate(blocks):
+            piece_actions = Rules.single_piece_actions(self.game_state, piece_idx)
+            actions.add( (piece_idx, action) for action in piece_actions )
+
+        ball_actions = Rules.single_ball_actions(self.game_state, player_idx)
+        actions.add( (piece_idx, action) for action in ball_actions )
+        return actions
 
     def validate_action(self, action: tuple, player_idx: int):
         """

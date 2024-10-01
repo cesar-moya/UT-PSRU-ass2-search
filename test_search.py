@@ -67,6 +67,7 @@ class TestSearch:
     def test_generate_actions(self):
         sim = GameSimulator(None)
         generated_actions = sim.generate_valid_actions(0)
+        assert len(generated_actions) > 0 # I added this
         assert (0,6) not in generated_actions
         assert (4,0) not in generated_actions
 
