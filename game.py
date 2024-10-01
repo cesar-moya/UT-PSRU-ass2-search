@@ -39,7 +39,7 @@ class BoardState:
         c, r = cr
         res = (6 * r) + r + c
         # print(f"encode: ({c},{r}) = {res}")
-        return res
+        return int(res)
 
     def decode_single_pos(self, n: int):
         """
@@ -123,54 +123,56 @@ class BoardState:
         return (b_blocks, b_ball)
     
     def same_diagonal(self, x1, y1, x2, y2):
-        #TODO: test this, make sure it works fine
-        if abs(x2 - x1) == abs(y2 - y1):
-            return True
-        else:
-            return False
-        
+        return abs(x2 - x1) == abs(y2 - y1)
+            
     # sub-function that finds all friendly blocks that are reachable (direct line of sight)
     def get_reachable_neighbors(self, current_block, friendly_blocks, opposite_blocks):
         # loop through friendly_blocks, check if it's in view and without any opposite in the way
         reachable = []
         for f in friendly_blocks:
-            # print(f"current_block: {current_block} | f: {f} | different?: {f != current_block}")
             if f != current_block and self.is_reachable(current_block, f, opposite_blocks):
+                # print(f"** FROM {current_block} TARGET {f} is REACHABLE **")
                 reachable.append(f)
         return reachable
 
     # Checks whether the target block is reachable (in clear sight) from current (horizontal, diagonal, vertical)
     def is_reachable(self, current_block, target_block, opposite_blocks):
         if current_block == target_block:
-            # print(f"current is same as target!: {current_block} - {target_block}")
             return False
+        
         curr_c, curr_r = self.decode_single_pos(current_block)
         targ_c, targ_r = self.decode_single_pos(target_block)
-        # opposite_cols/rows represent the row/col's where black pieces are "interfering"
-        opposite_cols = [self.decode_single_pos(s)[0] for s in opposite_blocks]
-        opposite_rows = [self.decode_single_pos(s)[1] for s in opposite_blocks]
+        # a friendly block is a candidate for taking the ball if it's on either the same col, same row, or same diagonal
+        is_candidate = curr_c == targ_c or curr_r == targ_r or self.same_diagonal(curr_c, curr_r, targ_c, targ_r)
+        # print(f"\nChecking... | curr:{current_block} | targ: {target_block} | is_candidate: {is_candidate}")
+        if not is_candidate:
+            return False
+
+        opposite_blocks_dec = [self.decode_single_pos(s) for s in opposite_blocks]
+        # print(f"Check Obstructions | opposite_blocks: {opposite_blocks}")
         # if target piece is on same col, check if there are blocking blocks
         if curr_c == targ_c:
-            # for all opposite_cols, if any of them is between curr_c and targ_c, then invalid
-            for opp_c in opposite_cols:
-                if (opp_c > curr_c and opp_c < targ_c) or (opp_c < curr_c and opp_c > targ_c):
+            for c, r in opposite_blocks_dec:
+                if curr_c == c and min(curr_r, targ_r) <= r <= max(curr_r, targ_r):
+                    # print(f"        COL Collision")
                     return False
+        
         # if target piece is on same row, check if there are blocking blocks
         if curr_r == targ_r:
-            for opp_r in opposite_rows:
-                if (opp_r > curr_r and opp_r < targ_r) or (opp_r < curr_r and opp_r > targ_r):
+            for c, r in opposite_blocks_dec:
+                if curr_r == r and min(curr_c, targ_c) <= c <= max(curr_c, targ_c):
+                    # print(f"        ROW Collision")
                     return False
+        
         # if target piece is on same diagonal, check if there are any blocking blocks
         if self.same_diagonal(curr_c, curr_r, targ_c, targ_r):
-            opposite_blocks_dec = [self.decode_single_pos(s) for s in opposite_blocks]
-            for o in opposite_blocks_dec:
-                opp_c, opp_r = o
+            for opp_c, opp_r in opposite_blocks_dec:
                 is_blocking = ( min(curr_c, targ_c) < opp_c < max(curr_c, targ_c) and 
                                 min(curr_r, targ_r) < opp_r < max(curr_r, targ_r) )
                 if is_blocking:
+                    # print(f"        DIAG Collision")
                     return False
         return True
-        
 
 class Rules:
 
@@ -237,8 +239,7 @@ class Rules:
         """
         w_blocks, w_ball = board_state.get_white()
         b_blocks, b_ball = board_state.get_black()
-        print(f"\nstate: {board_state.state} | player: {player_idx}")
-        
+        # print(f"\nstate: {board_state.state} | player: {player_idx} | w_blocks: {w_blocks} | b_blocks: {b_blocks}")
         # the ball can only move to one of its blocks in clear sight at any distance like a queen
         if player_idx == 0: # white
             ball_valid_actions = Rules.get_ball_actions_BFS(board_state, w_ball, w_blocks, b_blocks)    
@@ -262,7 +263,7 @@ class Rules:
             for n in board_state.get_reachable_neighbors(block, friendly_blocks, opposite_blocks):
                 if n not in visited:
                     q.put(n)
-        return visited
+        return {int(x) for x in visited} # for clarity
 
 class GameSimulator:
     """
