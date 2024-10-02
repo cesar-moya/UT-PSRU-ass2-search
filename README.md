@@ -138,9 +138,9 @@ We highly recommend that you come up with more comprehensive test cases to test 
 <https://docs.pytest.org/en/7.2.x/>
 
 ### Custom Notes
-To run a single test (most efficient)
+To run a single test (most efficient), and output the total duration of the run
 ```
->pytest -v -s test_search.py::TestSearch::test_game_state_problem
+pytest -v -s test_search.py::TestSearch::test_search_cases --durations=0
 ```
 
 To run a single parametrized test entry from param test
@@ -150,5 +150,5 @@ pytest -v -s test_search.py::TestSearch::test_ball_reachability[state1-reachable
 
 To run a single test (searches across all tests, slower)
 ```
->python -m pytest -s -k test_encoded_decode
+python -m pytest -s -k test_encoded_decode
 ```

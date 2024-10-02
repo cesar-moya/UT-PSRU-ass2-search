@@ -47,11 +47,15 @@ class GameStateProblem(Problem):
             - initial_state: ((game board state tuple), player_idx ) <--- indicates state of board and who's turn it is to move
               ---specifically it is of the form: tuple( ( tuple(initial_board_state.state), player_idx ) )
 
-            - goal_state_set: set([tuple((tuple(goal_board_state.state), 0)), tuple((tuple(goal_board_state.state), 1))])
-              ---in otherwords, the goal_state_set allows the goal_board_state.state to be reached on either player 0 or player 1's
-              turn.
+            - goal_state_set: set([
+                        tuple(
+                            (tuple(goal_board_state.state), 0)), tuple((tuple(goal_board_state.state), 1)
+                        )
+                    ])
+              ---in otherwords, the goal_state_set allows the goal_board_state.state to be reached on either player 0 or player 1's turn.
         """
-        super().__init__(tuple((tuple(initial_board_state.state), player_idx)), set([tuple((tuple(goal_board_state.state), 0)), tuple((tuple(goal_board_state.state), 1))]))
+        super().__init__(tuple((tuple(initial_board_state.state), player_idx)), 
+                         set([tuple((tuple(goal_board_state.state), 0)), tuple((tuple(goal_board_state.state), 1))]))
         self.sim = GameSimulator(None)
         self.search_alg_fnc = None
         self.set_search_alg()
@@ -65,7 +69,7 @@ class GameStateProblem(Problem):
 
         TODO: You need to set self.search_alg_fnc here
         """
-        self.search_alg_fnc = None
+        self.search_alg_fnc = self.moya_search
 
     def get_actions(self, state: tuple):
         """
@@ -88,9 +92,7 @@ class GameStateProblem(Problem):
     def execute(self, state: tuple, action: tuple):
         """
         From the given state, executes the given action
-
         The action is given with respect to the current player
-
         Inputs: 
             state: is a tuple (encoded_state, player_idx), where encoded_state is a tuple of 12 integers,
                 and player_idx is the player that is moving this turn
@@ -103,6 +105,74 @@ class GameStateProblem(Problem):
         k, v = action
         offset_idx = p * 6
         return tuple((tuple( s[i] if i != offset_idx + k else v for i in range(len(s))), (p + 1) % 2))
+
+    def moya_search(self):
+        # state = (encoded_state, player_idx)
+        # print(f"\ninitial_state: {self.initial_state}")
+        
+        myQueue = queue.SimpleQueue()
+        # TODO: check if I need to do copies of the board states, are they getting modified?
+        entry = (self.initial_state, None) #TODO: add depth max 7?
+        myQueue.put(entry)
+        visited = {}
+        visited[entry] = True
+        parent = {}
+        parent[entry] = None
+        
+        while not myQueue.empty():
+            currentEntry = myQueue.get()
+            state, action = currentEntry
+            if action is not None: 
+                state = self.execute(state, action) # visit the action
+            
+            if self.is_goal(state):
+                last_entry = (state, None)
+                parent[last_entry] = currentEntry
+                break
+            
+            # get next actions from current state
+            new_actions = self.get_actions(state)
+            # add actions to the frontier (queue)
+            # action = (relative_idx, encoded_position);     relative_idx = {0..5}, enc_pos = {0...58~}
+            for a in new_actions:                   
+                nextEntry = (state, a)
+                if nextEntry not in visited:
+                    visited[nextEntry] = True
+                    myQueue.put(nextEntry)
+                    parent[nextEntry] = currentEntry ## TODO check if currentEntry is getting modified above, if yes then fix here
+
+        solution = self.extract_solution(parent, last_entry)
+        self.print_solution(solution)
+        return solution
+
+    def extract_solution(self, parent, last_entry):
+        solution = []
+        solution.append(last_entry)    
+        while last_entry in parent: # if currentEntry has a parent keep going
+            last_entry = parent[last_entry]
+            s, a = last_entry
+            if a is None or last_entry is None: # if no more parents or first action reached
+                break
+            solution.append(last_entry)
+
+        solution.reverse()
+        return solution
+    
+    def print_solution(self, solution):
+        print(f"solution: ")
+        for i in solution:
+            s, a = i
+            self.print_state(s)
+            print(f" | action: {a}", end="\n")
+    
+    def print_state(self, state):
+        boardState, player = state
+        print("(", end="")
+        for pos in boardState:
+            print(f"{int(pos)}, ", end="")
+        print(")", end="")
+        print(f" | player: {player}", end="")
+
 
     ## TODO: Implement your search algorithm(s) here as methods of the GameStateProblem.
     ##       You are free to specify parameters that your method may require.
@@ -128,11 +198,9 @@ class GameStateProblem(Problem):
     ## NOTE: self.execute acts like the transition function.
     ## NOTE: Remember to set self.search_alg_fnc in set_search_alg above.
     ## 
-    """ Here is an example:
-    
-    def my_snazzy_search_algorithm(self):
-        ## Some kind of search algorithm
-        ## ...
-        return solution ## Solution is an ordered list of (s,a)
-    """
-
+    # """ Here is an example:
+    # def my_snazzy_search_algorithm(self):
+    #     ## Some kind of search algorithm
+    #     ## ...
+    #     return solution ## Solution is an ordered list of (s,a)
+    # """

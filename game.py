@@ -321,7 +321,6 @@ class GameSimulator:
               pieces. Pieces with relative index 0,1,2,3,4 are block pieces that like knights in chess, and
               relative index 5 is the player's ball piece.
         """
-
         if player_idx == 0:
             # blocks, ball = self.game_state.get_white()
             state_list_range = range(0, 5) # to maintain original index positions
