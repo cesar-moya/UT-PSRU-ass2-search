@@ -118,8 +118,11 @@ class GameStateProblem(Problem):
         visited[entry] = True
         parent = {}
         parent[entry] = None
+        states = {} # keep track of which states we've already calculated possible moves
         
+        iterations = 0
         while not myQueue.empty():
+            iterations += 1
             currentEntry = myQueue.get()
             state, action = currentEntry
             if action is not None: 
@@ -130,6 +133,13 @@ class GameStateProblem(Problem):
                 parent[last_entry] = currentEntry
                 break
             
+            if state in states:
+                # print(f"skipping redoing state: {self.get_state_str(state)}")
+                # we've already expanded this state, continue to next
+                continue
+            else:
+                states[state] = True # so that we don't explore the same state (+ player) again
+
             # get next actions from current state
             new_actions = self.get_actions(state)
             # add actions to the frontier (queue)
@@ -142,7 +152,7 @@ class GameStateProblem(Problem):
                     parent[nextEntry] = currentEntry ## TODO check if currentEntry is getting modified above, if yes then fix here
 
         solution = self.extract_solution(parent, last_entry)
-        self.print_solution(solution)
+        # self.print_solution(solution, iterations)
         return solution
 
     def extract_solution(self, parent, last_entry):
@@ -158,15 +168,26 @@ class GameStateProblem(Problem):
         solution.reverse()
         return solution
     
-    def print_solution(self, solution):
-        print(f"solution: ")
+    def print_solution(self, solution, iterations):
+        print(f"\nsolution: ")
         for i in solution:
             s, a = i
             self.print_state(s)
-            print(f" | action: {a}", end="\n")
+            print(f" | action: {a} | iterations: {iterations}", end="\n")
     
+    def get_state_str(self, state):
+        boardState, player = state
+        strs = []
+        strs.append("(")
+        for pos in boardState:
+            strs.append(f"{int(pos)}, ")
+        strs.append(")")
+        strs.append(f" | player: {player}")
+        return "".join(strs)
+
     def print_state(self, state):
         boardState, player = state
+        res = ""
         print("(", end="")
         for pos in boardState:
             print(f"{int(pos)}, ", end="")
