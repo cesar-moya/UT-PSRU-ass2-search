@@ -277,7 +277,10 @@ class Rules:
         q.put(ball)
         visited.add(ball)
         result = set()
+        friendly_blocks_set = set(friendly_blocks)
         while not q.empty():
+            if friendly_blocks_set.issubset(visited):
+                break
             block = q.get()
             dequeues += 1
             for n in board_state.get_reachable_neighbors(block, friendly_blocks, opposite_blocks):
@@ -286,6 +289,7 @@ class Rules:
                     q.put(n)
                     visited.add(n)
                     result.add(int(n))
+        
         # print(f"ball_actions_BFS | dequeues: {dequeues:,} | neighbors_found: {neighbors_found:,} | visited: {visited}")
         return result
 
