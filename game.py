@@ -267,21 +267,6 @@ class Rules:
         # print(f"SingleBallActions | State: {board_state.state} | actions: {ball_valid_actions}")
         Rules.ball_actions_cache[cache] = ball_valid_actions
         return ball_valid_actions
-    
-    @staticmethod
-    def get_ball_actions_BFS_OLD(board_state: BoardState, ball, friendly_blocks, opposite_blocks) -> set:
-        visited = set()
-        q = queue.SimpleQueue()
-        q.put(ball)
-        while not q.empty():
-            block = q.get()
-            # don't return the ball's block as an option
-            if block != ball:
-                visited.add(block)
-            for n in board_state.get_reachable_neighbors(block, friendly_blocks, opposite_blocks):
-                if n not in visited:
-                    q.put(n)
-        return {int(x) for x in visited} # for clarity
 
     @staticmethod
     def get_ball_actions_BFS(board_state: BoardState, ball, friendly_blocks, opposite_blocks) -> set:
@@ -301,19 +286,8 @@ class Rules:
                     q.put(n)
                     visited.add(n)
                     result.add(int(n))
-        return result
         # print(f"ball_actions_BFS | dequeues: {dequeues:,} | neighbors_found: {neighbors_found:,} | visited: {visited}")
-    
-    @staticmethod
-    def get_state_str(state):
-        boardState, player = state
-        strs = []
-        strs.append("(")
-        for pos in boardState:
-            strs.append(f"{int(pos):2}, ")
-        strs.append(")")
-        strs.append(f" | p{player}")
-        return "".join(strs)
+        return result
 
 class GameSimulator:
     """
@@ -387,13 +361,9 @@ class GameSimulator:
             actions.update((piece_rel_index, action) for action in piece_actions)
 
         # print(f"all->single_piece | state: {self.game_state.state} | actions: {actions}")
-
         ball_actions = Rules.single_ball_actions(self.game_state, player_idx)
-        
         # print(f"BEFORE | state: {self.game_state.state} | player: {player_idx} | piece_actions: {len(actions)}")
         # print(f"         state: {self.game_state.state} | player: {player_idx} | ball_actions : {[int(action) for action in ball_actions]}")
-
-        # actions.update((ball_relative_index, action) for action in ball_actions)
         for action in ball_actions:
             actions.add((ball_relative_index, action))
 
