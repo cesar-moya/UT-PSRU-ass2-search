@@ -69,7 +69,7 @@ class GameStateProblem(Problem):
 
         TODO: You need to set self.search_alg_fnc here
         """
-        self.search_alg_fnc = self.moya_search
+        self.search_alg_fnc = self.moya_search_2
 
     def get_actions(self, state: tuple):
         """
@@ -108,7 +108,7 @@ class GameStateProblem(Problem):
 
     def moya_search(self):
         # state = (encoded_state, player_idx)
-        # print(f"\ninitial_state: {self.initial_state}")
+        print(f"\ninitial_state: {self.initial_state}")
         
         myQueue = queue.SimpleQueue()
         # TODO: check if I need to do copies of the board states, are they getting modified?
@@ -121,18 +121,18 @@ class GameStateProblem(Problem):
         states = {} # keep track of which states we've already calculated possible moves
         
         iterations = 0
+        actions_enqueued = 0
+        actions_potential = 0
         while not myQueue.empty():
             iterations += 1
             currentEntry = myQueue.get()
             state, action = currentEntry
+            # print(f"search BEFORE | state: {state}")
+
             if action is not None: 
                 state = self.execute(state, action) # visit the action
             
-            if self.is_goal(state):
-                last_entry = (state, None)
-                parent[last_entry] = currentEntry
-                break
-            
+            # print(f"search AFTER  | state: {state}")
             if state in states:
                 # print(f"skipping redoing state: {self.get_state_str(state)}")
                 # we've already expanded this state, continue to next
@@ -140,20 +140,97 @@ class GameStateProblem(Problem):
             else:
                 states[state] = True # so that we don't explore the same state (+ player) again
 
+            
+            if self.is_goal(state):
+                last_entry = (state, None)
+                parent[last_entry] = currentEntry
+                break
+            
+            
             # get next actions from current state
             new_actions = self.get_actions(state)
             # add actions to the frontier (queue)
             # action = (relative_idx, encoded_position);     relative_idx = {0..5}, enc_pos = {0...58~}
-            for a in new_actions:                   
+            for a in new_actions:
+                actions_potential += 1
                 nextEntry = (state, a)
                 if nextEntry not in visited:
+                    actions_enqueued += 1
                     visited[nextEntry] = True
                     myQueue.put(nextEntry)
-                    parent[nextEntry] = currentEntry ## TODO check if currentEntry is getting modified above, if yes then fix here
+                    parent[nextEntry] = currentEntry 
+                    ## TODO check if currentEntry is getting modified above, if yes then fix here
 
         solution = self.extract_solution(parent, last_entry)
-        # self.print_solution(solution, iterations)
+        self.print_solution(solution, iterations, actions_enqueued, actions_potential)
         return solution
+    
+    def moya_search_2(self):
+        # state = (encoded_state, player_idx)
+        # print(f"\ninitial_state: {self.state_str(self.initial_state)}")
+        myQueue = queue.SimpleQueue()
+        myQueue.put(self.initial_state)
+        visited = {}
+        visited[self.initial_state] = True
+        parent = {}
+        actions_dequeued = 0
+        actions_enqueued = 0
+        actions_potential = 0
+        while not myQueue.empty():
+            actions_dequeued += 1
+            state = myQueue.get()
+            if self.is_goal(state):
+                break
+
+            new_actions = self.get_actions(state)
+            # action = (relative_idx, encoded_position);  relative_idx = {0..5}, enc_pos = {0...58~}
+            for a in new_actions:
+                actions_potential += 1
+                parent_state_action = (state, a)
+                new_state = self.execute(state, a)
+                if new_state not in visited:
+                    actions_enqueued += 1
+                    visited[new_state] = True
+                    myQueue.put(new_state)
+                    parent[new_state] = parent_state_action
+
+        solution = self.extract_solution_2(parent, state)
+        self.print_solution_2(solution, actions_dequeued, actions_enqueued, actions_potential)
+        return solution
+
+    def extract_solution_2(self, parent, last_state):
+        # print(f"last_state: {self.state_str(last_state)}")
+        solution = []
+        solution.append((last_state, None))
+        while last_state in parent: 
+            actionState = parent[last_state]
+            if actionState is not None:
+                s, a = actionState
+                last_state = s
+                solution.append((s, a))
+            else:
+                break
+
+        solution.reverse()
+        return solution
+    
+    def print_solution_2(self, solution, actions_dequeued, actions_enqueued, actions_potential):
+        print(f"\Solution: ")
+        for i in solution:
+            state, action = i
+            # self.print_state(s)
+            board_state, player = state
+            state_str = ", ".join(str(int(x)) for x in board_state)
+            action_str = (int(action[0]), int(action[1])) if action is not None else " None "
+            actual_bfs = Rules.total_bfs_searches - Rules.total_bfs_avoided
+            print(f"state: {state_str} | player {player} | action: {action_str} | actions_dequeued: {actions_dequeued:,} | "
+                  f"actions_enqueued: {actions_enqueued:,} | actions_potential: {actions_potential:,} | "
+                  f"ball_BFS_search_attempts: {Rules.total_bfs_searches:,} | actual_ball_BFS_searches: {actual_bfs:,}"
+                  , end="\n")
+
+    def state_str(self, state):
+        st, pl = state
+        return "(" + ", ".join(str(int(s)) for s in st) + f") | player {pl}"
 
     def extract_solution(self, parent, last_entry):
         solution = []
@@ -166,23 +243,24 @@ class GameStateProblem(Problem):
             solution.append(last_entry)
 
         solution.reverse()
-        return solution
-    
-    def print_solution(self, solution, iterations):
+        return solution 
+
+    def print_solution(self, solution, iterations, actions_enqueued, actions_potential):
         print(f"\nsolution: ")
         for i in solution:
             s, a = i
             self.print_state(s)
-            print(f" | action: {a} | iterations: {iterations}", end="\n")
+            print(f" | action: {a} | iterations: {iterations} | actions_enqueued: {actions_enqueued} | actions_potential: {actions_potential} | ball_BFS_search_attempts: {Rules.total_bfs_searches} | actual_ball_BFS_searches: {Rules.total_bfs_searches - Rules.total_bfs_avoided}", end="\n")
     
     def get_state_str(self, state):
         boardState, player = state
         strs = []
         strs.append("(")
         for pos in boardState:
-            strs.append(f"{int(pos)}, ")
+            # strs.append(f"{int(pos):2}, ")
+            strs.append(f"{pos}, ")
         strs.append(")")
-        strs.append(f" | player: {player}")
+        strs.append(f" | p{player}")
         return "".join(strs)
 
     def print_state(self, state):
@@ -190,9 +268,10 @@ class GameStateProblem(Problem):
         res = ""
         print("(", end="")
         for pos in boardState:
-            print(f"{int(pos)}, ", end="")
+            print(f"{pos} ", end="")
+            #print(f"{int(pos):2}, ", end="")
         print(")", end="")
-        print(f" | player: {player}", end="")
+        print(f" | p{player}", end="")
 
 
     ## TODO: Implement your search algorithm(s) here as methods of the GameStateProblem.

@@ -39,7 +39,8 @@ class BoardState:
         c, r = cr
         res = (6 * r) + r + c
         # print(f"encode: ({c},{r}) = {res}")
-        return int(res)
+        return res
+        # return int(res)
 
     def decode_single_pos(self, n: int):
         """
@@ -48,8 +49,10 @@ class BoardState:
         Input: an integer in the interval [0, 55] inclusive
         Output: a tuple (col, row)
         """
-        c = int(n % 7) # the remainder is the column
-        r = int(n // 7) # the quotient is the row
+        c = n % 7 # the remainder is the column
+        r = n // 7 # the quotient is the row
+        # c = int(n % 7) # the remainder is the column
+        # r = int(n // 7) # the quotient is the row
         # print(f"decode: {n} = ({c}, {r})")
         return (c, r)
 
@@ -223,8 +226,12 @@ class Rules:
             if o_enc in w_blocks or o_enc in b_blocks:
                 continue # cell occupied already
             valid_moves.append(o_enc)
-        # print(f"valid_moves: {valid_moves}")
-        return valid_moves
+        # print(f"single_piece_actions | State: {board_state.state} | actions: {valid_moves}")
+        return tuple(valid_moves)
+
+    ball_actions_cache = {}
+    total_bfs_searches = 0
+    total_bfs_avoided = 0
 
     @staticmethod
     def single_ball_actions(board_state, player_idx):
@@ -237,8 +244,17 @@ class Rules:
         Output: an iterable (set or list or tuple) of integers which indicate the encoded positions
             that player_idx's ball can move to during this turn.
         """
+        Rules.total_bfs_searches += 1
         w_blocks, w_ball = board_state.get_white()
         b_blocks, b_ball = board_state.get_black()
+        cache = (tuple(board_state.state), player_idx)
+        # TODO: if we do multithread then this will break
+        # TODO: it's either this or the state check on the main algo
+        if cache in Rules.ball_actions_cache:
+            # print(f"FOUND BALL ACTIONS IN CACHE")
+            Rules.total_bfs_avoided += 1
+            return Rules.ball_actions_cache[cache]
+   
         # print(f"\nstate: {board_state.state} | player: {player_idx} | w_blocks: {w_blocks} | b_blocks: {b_blocks}")
         # the ball can only move to one of its blocks in clear sight at any distance like a queen
         if player_idx == 0: # white
@@ -247,11 +263,13 @@ class Rules:
             ball_valid_actions = Rules.get_ball_actions_BFS(board_state, b_ball, b_blocks, w_blocks)
         else:
             raise Exception("Invalid Player")
+        
+        # print(f"SingleBallActions | State: {board_state.state} | actions: {ball_valid_actions}")
+        Rules.ball_actions_cache[cache] = ball_valid_actions
         return ball_valid_actions
     
-    # blocks and ball are encoded (e.g. 53, 2, 27)
     @staticmethod
-    def get_ball_actions_BFS(board_state: BoardState, ball, friendly_blocks, opposite_blocks) -> set:
+    def get_ball_actions_BFS_OLD(board_state: BoardState, ball, friendly_blocks, opposite_blocks) -> set:
         visited = set()
         q = queue.SimpleQueue()
         q.put(ball)
@@ -264,6 +282,38 @@ class Rules:
                 if n not in visited:
                     q.put(n)
         return {int(x) for x in visited} # for clarity
+
+    @staticmethod
+    def get_ball_actions_BFS(board_state: BoardState, ball, friendly_blocks, opposite_blocks) -> set:
+        dequeues = 0
+        neighbors_found = 0
+        visited = set()
+        q = queue.SimpleQueue()
+        q.put(ball)
+        visited.add(ball)
+        result = set()
+        while not q.empty():
+            block = q.get()
+            dequeues += 1
+            for n in board_state.get_reachable_neighbors(block, friendly_blocks, opposite_blocks):
+                neighbors_found += 1
+                if n not in visited:
+                    q.put(n)
+                    visited.add(n)
+                    result.add(int(n))
+        return result
+        # print(f"ball_actions_BFS | dequeues: {dequeues:,} | neighbors_found: {neighbors_found:,} | visited: {visited}")
+    
+    @staticmethod
+    def get_state_str(state):
+        boardState, player = state
+        strs = []
+        strs.append("(")
+        for pos in boardState:
+            strs.append(f"{int(pos):2}, ")
+        strs.append(")")
+        strs.append(f" | p{player}")
+        return "".join(strs)
 
 class GameSimulator:
     """
@@ -333,12 +383,24 @@ class GameSimulator:
         actions = set()
         for i in state_list_range:
             piece_actions = Rules.single_piece_actions(self.game_state, i)
-            player_rel_index = i if player_idx == 0 else i - 6 # so that we always do 0...5 for both black and white
-            actions.update((player_rel_index, action) for action in piece_actions)
+            piece_rel_index = i if player_idx == 0 else i - 6 # so that we always do 0...5 for both black and white
+            actions.update((piece_rel_index, action) for action in piece_actions)
+
+        # print(f"all->single_piece | state: {self.game_state.state} | actions: {actions}")
 
         ball_actions = Rules.single_ball_actions(self.game_state, player_idx)
-        actions.update((ball_relative_index, action) for action in ball_actions)
-        return actions
+        
+        # print(f"BEFORE | state: {self.game_state.state} | player: {player_idx} | piece_actions: {len(actions)}")
+        # print(f"         state: {self.game_state.state} | player: {player_idx} | ball_actions : {[int(action) for action in ball_actions]}")
+
+        # actions.update((ball_relative_index, action) for action in ball_actions)
+        for action in ball_actions:
+            actions.add((ball_relative_index, action))
+
+        # print(f"AFTER  | state: {self.game_state.state} | player: {player_idx} | all_actions  : {len(actions)}")
+        # print("")
+        # print(f"AFTER  | actions: {actions}")
+        return tuple(actions)
 
     def validate_action(self, action: tuple, player_idx: int):
         """
@@ -352,6 +414,7 @@ class GameSimulator:
             - if the action is not valid, raise ValueError
         """
         # print(f"\n\nstate: {self.game_state.state} | player: {player_idx}")
+        # print(f"validate_action")
         valid_actions = sorted(self.generate_valid_actions(player_idx))
         is_valid = action in valid_actions
         # print(f"valid_actions: {valid_actions}")
