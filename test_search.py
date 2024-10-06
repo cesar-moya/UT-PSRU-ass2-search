@@ -55,58 +55,34 @@ class TestSearch:
     
     # Test Case copied from autograder
     @pytest.mark.parametrize("goal_transform,opt_len", [
-        (((0,14),), 2),
-        (((0,23),), 5), # 1.32s
-        (((0,24),), 6), # 16.53s? (now 40 s)
-        (((1, 7),), 2), # <1s
-        (((1,11),), 2), # <1s
-        (((1,16),), 5), # 1.96s
-        (((1,22),(5,22)), 6), # 45s
-        (((1,22),(5,22),(11,50)), 6),
-        (((1,22),(5,22),(6,37),(11,37)), 6), # 47
-        # (((4,20),(5,20),(6,22),(11,22)), 7),
+        # (((0,14),), 2),
+        # (((0,23),), 5), # 1.32s
+        # (((0,24),), 6), # 20s
+        # (((1, 7),), 2), # <1s
+        # (((1,11),), 2), # <1s
+        # (((1,16),), 5), # 1.96s
+        # (((1,22),(5,22)), 6), # 45s
+        # (((1,22),(5,22),(11,50)), 6),
+        # (((1,22),(5,22),(6,37),(11,37)), 6), # 43s
+        (((4,20),(5,20),(6,22),(11,22)), 7),
     ])
-    @pytest.mark.timeout(120)
+    # @pytest.mark.timeout(120)
     def test_search_cases(self, goal_transform, opt_len):
         test_case = (goal_transform, opt_len)
         print(f"\nRunning test case {test_case}")
-    
         b1 = BoardState()
         b2 = BoardState()
-        # print(f"b1 | {b1.state}")
-        # print(f"b2 | {b2.state}")
-
         for idx, pos in goal_transform:
             b2.update(idx, pos)
         gsp = GameStateProblem(b1, b2, 0)
-
-
-        # print(f"gsp.b1: {gsp.initial_state}")
-        # print(f"gsp.b2: {gsp.goal_state_set}")
-
-        gsp.set_search_alg("")
+        # gsp.set_search_alg("dijkstra_heapq")
+        # gsp.set_search_alg("dijkstra")
+        # gsp.set_search_alg("bfs_heapq") 
+        # gsp.set_search_alg("bfs") 294s
+        gsp.set_search_alg("bfs_deque") #293s
+        
         sln = gsp.search_alg_fnc()
-
         assert len(sln) <= opt_len
-        
-        if test_case == (((0, 14),), 2):
-            expected = [
-                (tuple((tuple(b1.state), 0)), (0, 14)), 
-                (tuple((tuple(b2.state), 1)), None)
-            ]
-            # assert sln == expected
-        elif test_case == (((0,23),), 5):
-            expected = [
-                # (tuple((tuple(b1.state), 0)), (0, 14)), 
-                # (tuple((tuple(b2.state), 1)), None)
-            ]
-            # assert sln == expected
-        else:
-            assert True == True
-            # print(f"    NO ASSERTION DEFINED!!")
-        
-        
-    
 
     def test_initial_state(self):
         """

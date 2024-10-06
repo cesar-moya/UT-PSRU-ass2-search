@@ -2,6 +2,7 @@ import math
 import numpy as np
 import queue, heapq
 from game import BoardState, GameSimulator, Rules
+import collections
 
 class Problem:
     """
@@ -71,10 +72,21 @@ class GameStateProblem(Problem):
         pass a string as a parameter to alg, and then set:
             self.search_alg_fnc = self.your_method
         to indicate which algorithm you'd like to run.
-
-        TODO: You need to set self.search_alg_fnc here
         """
-        self.search_alg_fnc = self.moya_search_dijkstra_heapq
+        if alg == "bfs":
+            self.search_alg_fnc = self.moya_search
+        elif alg == "bfs_deque":
+            self.search_alg_fnc = self.moya_search_deque
+        elif alg == "bfs_heapq":
+            self.search_alg_fnc = self.moya_search_heapq
+        elif alg == "dijkstra_heapq":
+            self.search_alg_fnc = self.moya_search_dijkstra_heapq
+        elif alg == "dijkstra":
+            self.search_alg_fnc = self.moya_search_dijkstra
+        else:
+            pass
+        print(f"Now using search algorighm: {alg}")
+        
 
     def get_actions(self, state: tuple):
         """
@@ -113,7 +125,7 @@ class GameStateProblem(Problem):
     
     def moya_search(self):
         # state = (encoded_state, player_idx)
-        # print(f"\ninitial_state: {self.state_str(self.initial_state)}")
+        print(f"\ninitial_state: {self.state_str(self.initial_state)}")
         myQueue = queue.SimpleQueue()
         myQueue.put(self.initial_state)
         visited = {}
@@ -137,6 +149,72 @@ class GameStateProblem(Problem):
                     actions_enqueued += 1
                     visited[new_state] = True
                     myQueue.put(new_state)
+                    parent[new_state] = parent_state_action
+
+        solution = self.extract_solution(parent, state)
+        self.print_solution(solution, actions_dequeued, actions_enqueued, actions_potential)
+        return solution
+
+    def moya_search_deque(self):
+        # state = (encoded_state, player_idx)
+        print(f"\ninitial_state: {self.state_str(self.initial_state)}")
+        deque = collections.deque()
+        deque.append(self.initial_state)
+        # myQueue.put(self.initial_state)
+        visited = {}
+        visited[self.initial_state] = True
+        parent = {}
+        actions_dequeued = 0
+        actions_enqueued = 0
+        actions_potential = 0
+        while len(deque) > 0:
+            actions_dequeued += 1
+            state = deque.popleft()
+            if self.is_goal(state):
+                break
+            new_actions = self.get_actions(state)
+            # action = (relative_idx, encoded_position);  relative_idx = {0..5}, enc_pos = {0...58~}
+            for a in new_actions:
+                actions_potential += 1
+                parent_state_action = (state, a)
+                new_state = self.execute(state, a)
+                if new_state not in visited:
+                    actions_enqueued += 1
+                    visited[new_state] = True
+                    deque.append(new_state)
+                    parent[new_state] = parent_state_action
+
+        solution = self.extract_solution(parent, state)
+        self.print_solution(solution, actions_dequeued, actions_enqueued, actions_potential)
+        return solution
+
+    def moya_search_heapq(self):
+        # state = (encoded_state, player_idx)
+        print(f"\ninitial_state: {self.state_str(self.initial_state)}")
+        heap = []
+        #myQueue.put(self.initial_state)
+        heapq.heappush(heap, (0, self.initial_state))
+        visited = {}
+        visited[self.initial_state] = True
+        parent = {}
+        actions_dequeued = 0
+        actions_enqueued = 0
+        actions_potential = 0
+        while len(heap) > 0:
+            actions_dequeued += 1
+            h, state = heapq.heappop(heap)
+            if self.is_goal(state):
+                break
+            new_actions = self.get_actions(state)
+            # action = (relative_idx, encoded_position);  relative_idx = {0..5}, enc_pos = {0...58~}
+            for a in new_actions:
+                actions_potential += 1
+                parent_state_action = (state, a)
+                new_state = self.execute(state, a)
+                if new_state not in visited:
+                    actions_enqueued += 1
+                    visited[new_state] = True
+                    heapq.heappush(heap, (actions_dequeued, new_state))
                     parent[new_state] = parent_state_action
 
         solution = self.extract_solution(parent, state)
@@ -180,7 +258,7 @@ class GameStateProblem(Problem):
 
     def moya_search_dijkstra_heapq(self):
         # state = (encoded_state, player_idx)
-        # print(f"\ninitial_state: {self.state_str(self.initial_state)}")
+        print(f"\ninitial_state: {self.state_str(self.initial_state)}")
         heap = []
         heapq.heappush(heap, (0, self.initial_state))
         cost = {}
@@ -209,7 +287,7 @@ class GameStateProblem(Problem):
                     parent[next] = parent_state_action
 
         solution = self.extract_solution(parent, current)
-        # self.print_solution(solution, actions_dequeued, actions_enqueued, actions_potential)
+        self.print_solution(solution, actions_dequeued, actions_enqueued, actions_potential)
         return solution
 
     def heuristic(self, state):
