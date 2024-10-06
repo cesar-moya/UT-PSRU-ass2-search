@@ -84,7 +84,10 @@ class GameStateProblem(Problem):
         elif alg == "dijkstra":
             self.search_alg_fnc = self.moya_search_dijkstra
         else:
-            pass
+            # default
+            self.search_alg_fnc = self.moya_search_dijkstra_heapq
+            alg = "dijkstra_heapq"
+
         print(f"Now using search algorighm: {alg}")
         
 

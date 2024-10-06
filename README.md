@@ -152,3 +152,14 @@ To run a single test (searches across all tests, slower)
 ```
 python -m pytest -s -k test_encoded_decode
 ```
+
+#### Profiling
+```
+pip install pytest-profiling
+pytest -v -s test_search.py::TestSearch::test_search_cases --durations=0 --profile-svg
+pytest -v -s test_search.py::TestSearch::test_search_cases --durations=0 --profile
+
+# then visualize like
+python -m pip install snakeviz
+snakeviz combined.prof
+```

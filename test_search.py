@@ -75,11 +75,11 @@ class TestSearch:
         for idx, pos in goal_transform:
             b2.update(idx, pos)
         gsp = GameStateProblem(b1, b2, 0)
-        # gsp.set_search_alg("dijkstra_heapq")
+        gsp.set_search_alg("dijkstra_heapq")
         # gsp.set_search_alg("dijkstra")
         # gsp.set_search_alg("bfs_heapq") 
         # gsp.set_search_alg("bfs") 294s
-        gsp.set_search_alg("bfs_deque") #293s
+        # gsp.set_search_alg("bfs_deque") #293s
         
         sln = gsp.search_alg_fnc()
         assert len(sln) <= opt_len
