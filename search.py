@@ -1,5 +1,6 @@
+import math
 import numpy as np
-import queue
+import queue, heapq
 from game import BoardState, GameSimulator, Rules
 
 class Problem:
@@ -55,10 +56,14 @@ class GameStateProblem(Problem):
               ---in otherwords, the goal_state_set allows the goal_board_state.state to be reached on either player 0 or player 1's turn.
         """
         super().__init__(tuple((tuple(initial_board_state.state), player_idx)), 
-                         set([tuple((tuple(goal_board_state.state), 0)), tuple((tuple(goal_board_state.state), 1))]))
+                         set([
+                             tuple((tuple(goal_board_state.state), 0)), 
+                             tuple((tuple(goal_board_state.state), 1))
+                        ]))
         self.sim = GameSimulator(None)
         self.search_alg_fnc = None
         self.set_search_alg()
+        self.goal_board = goal_board_state.state
 
     def set_search_alg(self, alg=""):
         """
@@ -69,7 +74,7 @@ class GameStateProblem(Problem):
 
         TODO: You need to set self.search_alg_fnc here
         """
-        self.search_alg_fnc = self.moya_search
+        self.search_alg_fnc = self.moya_search_dijkstra_heapq
 
     def get_actions(self, state: tuple):
         """
@@ -122,7 +127,6 @@ class GameStateProblem(Problem):
             state = myQueue.get()
             if self.is_goal(state):
                 break
-
             new_actions = self.get_actions(state)
             # action = (relative_idx, encoded_position);  relative_idx = {0..5}, enc_pos = {0...58~}
             for a in new_actions:
@@ -138,6 +142,118 @@ class GameStateProblem(Problem):
         solution = self.extract_solution(parent, state)
         self.print_solution(solution, actions_dequeued, actions_enqueued, actions_potential)
         return solution
+
+    def moya_search_dijkstra(self):
+        # state = (encoded_state, player_idx)
+        print(f"\ninitial_state: {self.state_str(self.initial_state)}")
+        myQueue = queue.PriorityQueue()
+        myQueue.put((0, self.initial_state))
+        cost = {}
+        cost[self.initial_state] = 0
+        parent = {}
+        actions_dequeued = 0
+        actions_enqueued = 0
+        actions_potential = 0
+        while not myQueue.empty():
+            actions_dequeued += 1
+            h, current = myQueue.get()
+            if self.is_goal(current):
+                break
+            new_actions = self.get_actions(current)
+            # action = (relative_idx, encoded_position);  relative_idx = {0..5}, enc_pos = {0...58~}
+            for a in new_actions:
+                actions_potential += 1
+                parent_state_action = (current, a)
+                next = self.execute(current, a)
+                h = self.heuristic(next)
+                new_cost = cost[current] + h
+                if next not in cost or new_cost < cost[next]:
+                    actions_enqueued += 1
+                    cost[next] = new_cost
+                    
+                    myQueue.put((new_cost, next))  # or should it be just h?
+                    parent[next] = parent_state_action
+
+        solution = self.extract_solution(parent, current)
+        self.print_solution(solution, actions_dequeued, actions_enqueued, actions_potential)
+        return solution
+
+    def moya_search_dijkstra_heapq(self):
+        # state = (encoded_state, player_idx)
+        # print(f"\ninitial_state: {self.state_str(self.initial_state)}")
+        heap = []
+        heapq.heappush(heap, (0, self.initial_state))
+        cost = {}
+        cost[self.initial_state] = 0
+        parent = {}
+        actions_dequeued = 0
+        actions_enqueued = 0
+        actions_potential = 0
+        while len(heap) > 0:
+            actions_dequeued += 1
+            h, current = heapq.heappop(heap)
+            if self.is_goal(current):
+                break
+            new_actions = self.get_actions(current)
+            # action = (relative_idx, encoded_position);  relative_idx = {0..5}, enc_pos = {0...58~}
+            for a in new_actions:
+                actions_potential += 1
+                parent_state_action = (current, a)
+                next = self.execute(current, a)
+                h = self.heuristic(next)
+                new_cost = cost[current] + h
+                if next not in cost or new_cost < cost[next]:
+                    actions_enqueued += 1
+                    cost[next] = new_cost
+                    heapq.heappush(heap, (new_cost, next))  # or should it be just h?
+                    parent[next] = parent_state_action
+
+        solution = self.extract_solution(parent, current)
+        # self.print_solution(solution, actions_dequeued, actions_enqueued, actions_potential)
+        return solution
+
+    def heuristic(self, state):
+        return 1
+        # state_helper = BoardState()
+        # total_cost = 0
+        # board_state, player = state
+        # # maybe take a heuristic only for the current player, leave the rest intact?
+        # for i, val in enumerate(board_state):
+        #     p1 = state_helper.decode_single_pos(val)
+        #     p2 = state_helper.decode_single_pos(self.goal_board[i])
+
+        #     if i == 5 or i == 11: #skip the ball for now
+        #         # total_cost += self.ball_distance_heuristic(p1, p2)
+        #         pass
+        #     else:
+        #         # total_cost += self.euclidean_distance(p1, p2)
+        #         # total_cost += self.manhattan_distance(p1, p2)
+        #         total_cost += self.knight_dist_heuristic(p1, p2)
+        # return total_cost
+    
+    def ball_distance_heuristic(self, ball_pos, goal_pos):
+        knight_distance = self.knight_dist_heuristic(ball_pos, goal_pos)
+
+        # (Simplified) Adjustment for queen-like movement (replace with more robust logic)
+        if abs(ball_pos[0] - goal_pos[0]) == abs(ball_pos[1] - goal_pos[1]):  # Diagonal
+            knight_distance = math.ceil(knight_distance / 2)  # Reduce for diagonal
+
+        return knight_distance 
+
+    def knight_dist_heuristic(self, p1, p2):
+        x_dist = abs(p1[0] - p2[0])
+        y_dist = abs(p1[1] - p2[1])
+        return max(math.ceil(x_dist / 3), math.ceil(y_dist / 3))
+    
+    def manhattan_distance(self, p1, p2):
+        x1, y1 = p1
+        x2, y2 = p2
+        return abs(x1 - x2) + abs(y1 - y2)
+    
+    def euclidean_distance(self, p1, p2):
+        x1, y1 = p1
+        x2, y2 = p2
+        return math.sqrt((x1 - x2)**2 + (y1 - y2)**2)
 
     def extract_solution(self, parent, last_state):
         # print(f"last_state: {self.state_str(last_state)}")
@@ -156,7 +272,7 @@ class GameStateProblem(Problem):
         return solution
     
     def print_solution(self, solution, actions_dequeued, actions_enqueued, actions_potential):
-        print(f"\Solution: ")
+        print(f"Solution: ")
         for i in solution:
             state, action = i
             board_state, player = state

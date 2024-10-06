@@ -251,10 +251,8 @@ class Rules:
         # TODO: if we do multithread then this will break
         # TODO: it's either this or the state check on the main algo
         if cache in Rules.ball_actions_cache:
-            # print(f"FOUND BALL ACTIONS IN CACHE")
             Rules.total_bfs_avoided += 1
             return Rules.ball_actions_cache[cache]
-   
         # print(f"\nstate: {board_state.state} | player: {player_idx} | w_blocks: {w_blocks} | b_blocks: {b_blocks}")
         # the ball can only move to one of its blocks in clear sight at any distance like a queen
         if player_idx == 0: # white
